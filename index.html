@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>今日一号令｜基于《毛泽东选集》的个人日程管理</title>
+  <meta name="description" content="把实事求是、调查研究、抓主要矛盾和复盘实践转化为个人日程管理流程。" />
+  <meta name="theme-color" content="#9f2d23" />
+  <style>
+    :root {
+      --paper: #f5efe2;
+      --paper-deep: #efe6d2;
+      --ink: #2f2a24;
+      --muted: #6f6454;
+      --red: #9f2d23;
+      --red-deep: #7a1f17;
+      --line: #cdbfa6;
+      --shadow: rgba(70, 44, 26, 0.10);
+      --success: #466448;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(159,45,35,0.06), transparent 18%),
+        linear-gradient(180deg, rgba(255,255,255,0.25), rgba(255,255,255,0.0)),
+        var(--paper);
+      min-height: 100vh;
+      letter-spacing: 0.2px;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    .header {
+      background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.15));
+      border: 1px solid var(--line);
+      box-shadow: 0 8px 24px var(--shadow);
+      padding: 22px 20px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::after {
+      content: "内部记录";
+      position: absolute;
+      right: 18px;
+      top: 14px;
+      color: rgba(159,45,35,0.18);
+      border: 2px solid rgba(159,45,35,0.18);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 12px;
+      transform: rotate(-8deg);
+      letter-spacing: 2px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .seal {
+      width: 62px;
+      height: 62px;
+      border: 3px solid var(--red);
+      color: var(--red);
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      line-height: 1.2;
+      transform: rotate(-6deg);
+      background: rgba(159,45,35,0.03);
+      flex: 0 0 auto;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 40px);
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    button, .file-label {
+      border: 1px solid var(--red);
+      background: rgba(159,45,35,0.04);
+      color: var(--red-deep);
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: 0.16s ease;
+      min-height: 42px;
+    }
+
+    button:hover, .file-label:hover {
+      background: rgba(159,45,35,0.09);
+    }
+
+    button.secondary {
+      border-color: var(--line);
+      color: var(--ink);
+      background: rgba(255,255,255,0.35);
+    }
+
+    .status {
+      margin-left: auto;
+      align-self: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .nav, .panel, .archive {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.22);
+      box-shadow: 0 6px 18px var(--shadow);
+    }
+
+    .nav {
+      padding: 12px;
+      align-self: start;
+      position: sticky;
+      top: 16px;
+    }
+
+    .nav-title {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+
+    .tab-btn {
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--ink);
+      margin-bottom: 8px;
+      padding: 12px 10px;
+    }
+
+    .tab-btn.active {
+      border-color: var(--red);
+      background: rgba(159,45,35,0.07);
+      color: var(--red-deep);
+      font-weight: 700;
+    }
+
+    .panel {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(159,45,35,0.04), rgba(159,45,35,0.01));
+    }
+
+    .panel-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    .panel-body {
+      padding: 18px;
+      display: none;
+    }
+
+    .panel-body.active { display: block; }
+
+    .section {
+      border: 1px dashed var(--line);
+      padding: 14px;
+      margin-bottom: 14px;
+      background: rgba(255,255,255,0.18);
+    }
+
+    .section h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: var(--red-deep);
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .field input,
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.50);
+      color: var(--ink);
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 86px;
+      resize: vertical;
+      line-height: 1.6;
+    }
+
+    .field input:focus,
+    .field textarea:focus,
+    .field select:focus {
+      border-color: var(--red);
+      background: rgba(255,255,255,0.72);
+    }
+
+    .row2, .row3 {
+      display: grid;
+      gap: 12px;
+    }
+    .row2 { grid-template-columns: 1fr 1fr; }
+    .row3 { grid-template-columns: repeat(3, 1fr); }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .small-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+
+    .archive {
+      margin-top: 16px;
+      padding: 16px 18px;
+    }
+
+    .archive-head {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .archive-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .archive-item {
+      border: 1px solid var(--line);
+      padding: 12px;
+      background: rgba(255,255,255,0.24);
+    }
+
+    .archive-item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    .archive-item-title {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .archive-item-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .archive-item-snippet {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .inline-actions button {
+      padding: 7px 10px;
+      min-height: 34px;
+      font-size: 13px;
+    }
+
+    .search {
+      min-width: 240px;
+      flex: 1;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.45);
+      padding: 10px 12px;
+      font-family: inherit;
+      color: var(--ink);
+    }
+
+    .hidden { display: none !important; }
+
+    .legend {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .method-note {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,0.2);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: 1fr; }
+      .nav { position: static; }
+      .row2, .row3 { grid-template-columns: 1fr; }
+      .status { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="title-row">
+        <div class="seal">今日<br>一号令</div>
+        <div>
+          <h1>今日一号令</h1>
+          <div class="subtitle">基于《毛泽东选集》方法论的个人日程管理工具。<br>每日定中心任务、以事实验收、晚间复盘；每周分析主要矛盾；每个一号工程结束时提炼自己的工作方法。</div>
+        </div>
+      </div>
+      <div class="toolbar">
+        <button id="exportJsonBtn">导出 JSON 备份</button>
+        <button id="importJsonTrigger" class="secondary">导入 JSON 备份</button>
+        <button id="exportMarkdownBtn" class="secondary">导出全部 Markdown</button>
+        <button id="clearDraftBtn" class="secondary">清空当前表单</button>
+        <input id="importJsonInput" type="file" accept="application/json" class="hidden" />
+        <div class="status" id="saveStatus">已就绪</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <aside class="nav">
+        <div class="nav-title">记录类型</div>
+        <button class="tab-btn active" data-tab="daily">每日</button>
+        <button class="tab-btn" data-tab="weekly">每周</button>
+        <button class="tab-btn" data-tab="project">一号工程</button>
+        <button class="tab-btn" data-tab="research">新赛道调研</button>
+        <button class="tab-btn" data-tab="dynamic">动态竞争</button>
+      </aside>
+
+      <main>
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-title" id="panelTitle">每日记录</div>
+            <div class="legend">所有内容自动保存在本地浏览器中</div>
+          </div>
+
+          <div class="panel-body active" data-body="daily">
+            <div class="section">
+              <div class="row2">
+                <div class="field">
+                  <label>日期</label>
+                  <input type="date" id="daily_date" />
+                </div>
+                <div class="field">
+                  <label>学习材料（可选）</label>
+                  <input type="text" id="daily_learning_material" placeholder="书、视频、培训、文章……" />
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <h3>今日令</h3>
+              <div class="field">
+                <label>中心任务</label>
+                <textarea id="daily_center_task" placeholder="例如：写完第六章 6.3.2 小节"></textarea>
+              </div>
+              <div class="field">
+                <label>完成标准</label>
+                <textarea id="daily_completion_standard" placeholder="例如：整理进 Word 正文并发给导师"></textarea>
+              </div>
+            </div>
+            <div class="section">
+              <h3>证据记录</h3>
+              <div class="row2">
+                <div class="field">
+                  <label>实际开始时间</label>
+                  <input type="time" id="daily_actual_start_time" />
+                </div>
+                <div class="field">
+                  <label>实际完成物</label>
+                  <input type="text" id="daily_actual_output" placeholder="例如：fig_6_3_V1.png / 已发邮件" />
+                </div>
+              </div>
+              <div class="field">
+                <label>遇到的问题和当前解决方法</label>
+                <textarea id="daily_problem_solution" placeholder="例如：新旧图峰值不一致；当前先核对原始数据来源"></textarea>
+              </div>
+            </div>
+            <div class="section">
+              <h3>查令</h3>
+              <div class="field">
+                <label>今日令完成了吗</label>
+                <textarea id="daily_done_check"></textarea>
+              </div>
+              <div class="field">
+                <label>没完成的事实原因</label>
+                <textarea id="daily_unfinished_reason"></textarea>
+              </div>
+              <div class="field">
+                <label>明日处理</label>
+                <textarea id="daily_tomorrow_action"></textarea>
+              </div>
+            </div>
+            <div class="section">
+              <h3>学习记录（可选）</h3>
+              <div class="field">
+                <label>我为什么学这个</label>
+                <textarea id="daily_learning_why"></textarea>
+              </div>
+              <div class="field">
+                <label>它解决我的哪个问题</label>
+                <textarea id="daily_learning_problem"></textarea>
+              </div>
+              <div class="field">
+                <label>我学到了什么</label>
+                <textarea id="daily_learning_learned"></textarea>
+              </div>
+              <div class="field">
+                <label>我的行动将如何改变</label>
+                <textarea id="daily_learning_action_change"></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button onclick="saveCurrent('daily')">保存每日记录</button>
+              <button class="secondary" onclick="newRecord('daily')">新建空白记录</button>
+            </div>
+          </div>
+
+          <div class="panel-body" data-body="weekly">
+            <div class="section">
+              <div class="row2">
+                <div class="field">
+                  <label>周次 / 日期范围</label>
+                  <input type="text" id="weekly_period" placeholder="例如：2026.06.17–2026.06.23" />
+                </div>
+                <div class="field">
+                  <label>记录标题（可选）</label>
+                  <input type="text" id="weekly_title" placeholder="例如：六月第三周五纲复盘" />
+                </div>
+              </div>
+            </div>
+            <div class="section"><h3>事业</h3>
+              <div class="field"><label>事实</label><textarea id="weekly_career_facts"></textarea></div>
+              <div class="field"><label>成果</label><textarea id="weekly_career_results"></textarea></div>
+              <div class="field"><label>问题</label><textarea id="weekly_career_issues"></textarea></div>
+              <div class="field"><label>下周动作</label><textarea id="weekly_career_next"></textarea></div>
+            </div>
+            <div class="section"><h3>经济</h3>
+              <div class="field"><label>事实</label><textarea id="weekly_economy_facts"></textarea></div>
+              <div class="field"><label>成果</label><textarea id="weekly_economy_results"></textarea></div>
+              <div class="field"><label>问题</label><textarea id="weekly_economy_issues"></textarea></div>
+              <div class="field"><label>下周动作</label><textarea id="weekly_economy_next"></textarea></div>
+            </div>
+            <div class="section"><h3>身体</h3>
+              <div class="field"><label>事实</label><textarea id="weekly_body_facts"></textarea></div>
+              <div class="field"><label>成果</label><textarea id="weekly_body_results"></textarea></div>
+              <div class="field"><label>问题</label><textarea id="weekly_body_issues"></textarea></div>
+              <div class="field"><label>下周动作</label><textarea id="weekly_body_next"></textarea></div>
+            </div>
+            <div class="section"><h3>人际</h3>
+              <div class="field"><label>事实</label><textarea id="weekly_relationship_facts"></textarea></div>
+              <div class="field"><label>成果</label><textarea id="weekly_relationship_results"></textarea></div>
+              <div class="field"><label>问题</label><textarea id="weekly_relationship_issues"></textarea></div>
+              <div class="field"><label>下周动作</label><textarea id="weekly_relationship_next"></textarea></div>
+            </div>
+            <div class="section"><h3>当前斗争</h3>
+              <div class="field"><label>本周主要矛盾</label><textarea id="weekly_struggle_main"></textarea></div>
+              <div class="field"><label>证据</label><textarea id="weekly_struggle_evidence"></textarea></div>
+              <div class="field"><label>下周主攻方向</label><textarea id="weekly_struggle_next"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button onclick="saveCurrent('weekly')">保存每周复盘</button>
+              <button class="secondary" onclick="newRecord('weekly')">新建空白记录</button>
+            </div>
+          </div>
+
+          <div class="panel-body" data-body="project">
+            <div class="section">
+              <div class="row2">
+                <div class="field"><label>工程名称</label><input type="text" id="project_name" /></div>
+                <div class="field"><label>记录日期</label><input type="date" id="project_date" /></div>
+              </div>
+            </div>
+            <div class="section">
+              <h3>启动记录</h3>
+              <div class="field"><label>为什么现在必须做它</label><textarea id="project_why_now"></textarea></div>
+              <div class="field"><label>完成标准</label><textarea id="project_completion"></textarea></div>
+              <div class="field"><label>预计周期</label><textarea id="project_period"></textarea></div>
+              <div class="field"><label>每周节点</label><textarea id="project_weekly_nodes"></textarea></div>
+              <div class="field"><label>不做事项</label><textarea id="project_not_do"></textarea></div>
+            </div>
+            <div class="section">
+              <h3>结束复盘</h3>
+              <div class="field"><label>原定目标</label><textarea id="project_original_goal"></textarea></div>
+              <div class="field"><label>实际完成</label><textarea id="project_actual_done"></textarea></div>
+              <div class="field"><label>证据</label><textarea id="project_evidence"></textarea></div>
+              <div class="field"><label>本工程有效方法</label><textarea id="project_good_methods"></textarea></div>
+              <div class="field"><label>适用场景</label><textarea id="project_good_method_scope"></textarea></div>
+              <div class="field"><label>是否推广</label><textarea id="project_promote"></textarea></div>
+              <div class="field"><label>本工程失败方法</label><textarea id="project_bad_methods"></textarea></div>
+              <div class="field"><label>为什么失败</label><textarea id="project_bad_reason"></textarea></div>
+              <div class="field"><label>以后如何避免</label><textarea id="project_avoid"></textarea></div>
+              <div class="field"><label>本工程对当前斗争的意义</label><textarea id="project_struggle_meaning"></textarea></div>
+              <div class="field"><label>这个工程解决了什么主要矛盾</label><textarea id="project_solved"></textarea></div>
+              <div class="field"><label>它暴露了什么新矛盾</label><textarea id="project_new_conflict"></textarea></div>
+              <div class="field"><label>它改变了我对自己的什么判断</label><textarea id="project_changed_judgement"></textarea></div>
+            </div>
+            <div class="section">
+              <h3>下个一号工程</h3>
+              <div class="field"><label>目标</label><textarea id="project_next_goal"></textarea></div>
+              <div class="field"><label>完成标准</label><textarea id="project_next_completion"></textarea></div>
+              <div class="field"><label>每周节点</label><textarea id="project_next_nodes"></textarea></div>
+              <div class="field"><label>不做事项</label><textarea id="project_next_not_do"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button onclick="saveCurrent('project')">保存一号工程记录</button>
+              <button class="secondary" onclick="newRecord('project')">新建空白记录</button>
+            </div>
+          </div>
+
+          <div class="panel-body" data-body="research">
+            <div class="section">
+              <div class="row2">
+                <div class="field"><label>调研对象</label><input type="text" id="research_subject" /></div>
+                <div class="field"><label>记录日期</label><input type="date" id="research_date" /></div>
+              </div>
+            </div>
+            <div class="section">
+              <h3>新赛道调研与取胜战略</h3>
+              <div class="field"><label>我要进入的领域/战场</label><textarea id="research_field"></textarea></div>
+              <div class="field"><label>我为什么要进入</label><textarea id="research_why_enter"></textarea></div>
+              <div class="field"><label>这个领域真正奖励什么</label><textarea id="research_reward"></textarea></div>
+              <div class="field"><label>核心概念/基本规则</label><textarea id="research_rules"></textarea></div>
+              <div class="field"><label>最好的5个榜样</label><textarea id="research_best5" placeholder="每行一个"></textarea></div>
+              <div class="field"><label>他们赢在哪里</label><textarea id="research_best_reason"></textarea></div>
+              <div class="field"><label>共同特征</label><textarea id="research_best_common"></textarea></div>
+              <div class="field"><label>失败的5个案例</label><textarea id="research_fail5" placeholder="每行一个"></textarea></div>
+              <div class="field"><label>他们输在哪里</label><textarea id="research_fail_reason"></textarea></div>
+              <div class="field"><label>共同问题</label><textarea id="research_fail_common"></textarea></div>
+              <div class="field"><label>已有优势</label><textarea id="research_advantage"></textarea></div>
+              <div class="field"><label>明显短板</label><textarea id="research_shortcoming"></textarea></div>
+              <div class="field"><label>不能硬拼的地方</label><textarea id="research_not_hard"></textarea></div>
+              <div class="field"><label>我模仿什么</label><textarea id="research_copy"></textarea></div>
+              <div class="field"><label>我避开什么</label><textarea id="research_avoid"></textarea></div>
+              <div class="field"><label>我差异化在哪里</label><textarea id="research_diff"></textarea></div>
+              <div class="field"><label>我的第一场小胜利是什么</label><textarea id="research_first_win"></textarea></div>
+              <div class="field"><label>下一步行动</label><textarea id="research_next"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button onclick="saveCurrent('research')">保存新赛道调研</button>
+              <button class="secondary" onclick="newRecord('research')">新建空白记录</button>
+            </div>
+          </div>
+
+          <div class="panel-body" data-body="dynamic">
+            <div class="section">
+              <div class="row2">
+                <div class="field"><label>项目名称</label><input type="text" id="dynamic_name" /></div>
+                <div class="field"><label>记录日期</label><input type="date" id="dynamic_date" /></div>
+              </div>
+            </div>
+            <div class="section">
+              <h3>动态竞争记录</h3>
+              <div class="field"><label>总目标</label><textarea id="dynamic_goal"></textarea></div>
+              <div class="field"><label>初步判断</label><textarea id="dynamic_initial"></textarea></div>
+              <div class="field"><label>第一阶段部署</label><textarea id="dynamic_stage1"></textarea></div>
+              <div class="field"><label>阶段成果</label><textarea id="dynamic_result"></textarea></div>
+              <div class="field"><label>外部反馈</label><textarea id="dynamic_feedback"></textarea></div>
+              <div class="field"><label>形势变化</label><textarea id="dynamic_change"></textarea></div>
+              <div class="field"><label>当前主要矛盾</label><textarea id="dynamic_conflict"></textarea></div>
+              <div class="field"><label>调整部署</label><textarea id="dynamic_adjust"></textarea></div>
+              <div class="field"><label>下一检查点</label><textarea id="dynamic_next_check"></textarea></div>
+              <div class="field"><label>最终胜利标准</label><textarea id="dynamic_win"></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button onclick="saveCurrent('dynamic')">保存动态竞争记录</button>
+              <button class="secondary" onclick="newRecord('dynamic')">新建空白记录</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="archive">
+          <div class="archive-head">
+            <div>
+              <div class="panel-title" style="font-size:18px;">历史档案</div>
+              <div class="legend">当前显示所选记录类型的已保存条目</div>
+            </div>
+            <input class="search" id="searchInput" placeholder="搜索关键词……" />
+          </div>
+          <div class="archive-list" id="archiveList"></div>
+        </section>
+      </main>
+    </div>
+    <footer class="method-note">
+      方法说明：本工具借鉴《毛泽东选集》中实事求是、调查研究、抓主要矛盾以及“实践—认识—再实践”等方法，转化为个人计划、执行与复盘流程。本站为非官方个人项目，不代表任何机构立场。
+    </footer>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'today-first-order-data-v1';
+    const tabs = {
+      daily: {
+        label: '每日记录',
+        titleField: ['daily_center_task', 'daily_date'],
+        snippetField: ['daily_actual_output', 'daily_tomorrow_action'],
+        fields: [
+          'daily_date','daily_learning_material','daily_center_task','daily_completion_standard','daily_actual_start_time','daily_actual_output','daily_problem_solution','daily_done_check','daily_unfinished_reason','daily_tomorrow_action','daily_learning_why','daily_learning_problem','daily_learning_learned','daily_learning_action_change'
+        ]
+      },
+      weekly: {
+        label: '每周复盘',
+        titleField: ['weekly_title', 'weekly_period'],
+        snippetField: ['weekly_struggle_main', 'weekly_struggle_next'],
+        fields: [
+          'weekly_period','weekly_title','weekly_career_facts','weekly_career_results','weekly_career_issues','weekly_career_next','weekly_economy_facts','weekly_economy_results','weekly_economy_issues','weekly_economy_next','weekly_body_facts','weekly_body_results','weekly_body_issues','weekly_body_next','weekly_relationship_facts','weekly_relationship_results','weekly_relationship_issues','weekly_relationship_next','weekly_struggle_main','weekly_struggle_evidence','weekly_struggle_next'
+        ]
+      },
+      project: {
+        label: '一号工程',
+        titleField: ['project_name', 'project_date'],
+        snippetField: ['project_completion', 'project_next_goal'],
+        fields: [
+          'project_name','project_date','project_why_now','project_completion','project_period','project_weekly_nodes','project_not_do','project_original_goal','project_actual_done','project_evidence','project_good_methods','project_good_method_scope','project_promote','project_bad_methods','project_bad_reason','project_avoid','project_struggle_meaning','project_solved','project_new_conflict','project_changed_judgement','project_next_goal','project_next_completion','project_next_nodes','project_next_not_do'
+        ]
+      },
+      research: {
+        label: '新赛道调研',
+        titleField: ['research_subject', 'research_field'],
+        snippetField: ['research_diff', 'research_next'],
+        fields: [
+          'research_subject','research_date','research_field','research_why_enter','research_reward','research_rules','research_best5','research_best_reason','research_best_common','research_fail5','research_fail_reason','research_fail_common','research_advantage','research_shortcoming','research_not_hard','research_copy','research_avoid','research_diff','research_first_win','research_next'
+        ]
+      },
+      dynamic: {
+        label: '动态竞争',
+        titleField: ['dynamic_name', 'dynamic_date'],
+        snippetField: ['dynamic_conflict', 'dynamic_adjust'],
+        fields: [
+          'dynamic_name','dynamic_date','dynamic_goal','dynamic_initial','dynamic_stage1','dynamic_result','dynamic_feedback','dynamic_change','dynamic_conflict','dynamic_adjust','dynamic_next_check','dynamic_win'
+        ]
+      }
+    };
+
+    let state = loadState();
+    let activeTab = 'daily';
+    let currentEditingId = null;
+    const $ = (id) => document.getElementById(id);
+
+    function loadState() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try { return JSON.parse(raw); } catch(e) {}
+      }
+      return { records: { daily: [], weekly: [], project: [], research: [], dynamic: [] } };
+    }
+
+    function persist() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      setStatus('已自动保存到本地');
+    }
+
+    function setStatus(text) {
+      const el = $('saveStatus');
+      el.textContent = text;
+      clearTimeout(setStatus._t);
+      setStatus._t = setTimeout(() => { el.textContent = '已就绪'; }, 1800);
+    }
+
+    function setTodayDefaults() {
+      const today = new Date().toISOString().slice(0,10);
+      if (!$('daily_date').value) $('daily_date').value = today;
+      if (!$('project_date').value) $('project_date').value = today;
+      if (!$('research_date').value) $('research_date').value = today;
+      if (!$('dynamic_date').value) $('dynamic_date').value = today;
+    }
+
+    function getFormData(tab) {
+      const cfg = tabs[tab];
+      const data = {};
+      cfg.fields.forEach(id => data[id] = $(id).value || '');
+      return data;
+    }
+
+    function setFormData(tab, data = {}) {
+      const cfg = tabs[tab];
+      cfg.fields.forEach(id => { $(id).value = data[id] || ''; });
+      setTodayDefaults();
+    }
+
+    function clearForm(tab) {
+      setFormData(tab, {});
+      currentEditingId = null;
+      setStatus('已清空当前表单');
+    }
+
+    function newRecord(tab) {
+      clearForm(tab);
+    }
+
+    function computeTitle(tab, data) {
+      const cfg = tabs[tab];
+      const val = cfg.titleField.map(k => data[k]).find(v => v && v.trim());
+      if (val) return val.trim().slice(0, 48);
+      return cfg.label;
+    }
+
+    function computeSnippet(tab, data) {
+      const cfg = tabs[tab];
+      return cfg.snippetField.map(k => data[k] || '').filter(Boolean).join(' ｜ ').slice(0, 180);
+    }
+
+    function saveCurrent(tab) {
+      const data = getFormData(tab);
+      const record = {
+        id: currentEditingId || crypto.randomUUID(),
+        type: tab,
+        updatedAt: new Date().toISOString(),
+        title: computeTitle(tab, data),
+        snippet: computeSnippet(tab, data),
+        data
+      };
+      const list = state.records[tab];
+      const idx = list.findIndex(r => r.id === record.id);
+      if (idx >= 0) list[idx] = record;
+      else list.unshift(record);
+      list.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+      currentEditingId = record.id;
+      persist();
+      renderArchive();
+      setStatus('已保存');
+    }
+
+    function deleteRecord(tab, id) {
+      if (!confirm('确定删除这条记录吗？')) return;
+      state.records[tab] = state.records[tab].filter(r => r.id !== id);
+      if (currentEditingId === id) {
+        clearForm(tab);
+      }
+      persist();
+      renderArchive();
+    }
+
+    function loadRecord(tab, id) {
+      const record = state.records[tab].find(r => r.id === id);
+      if (!record) return;
+      currentEditingId = id;
+      setFormData(tab, record.data);
+      setStatus('已载入历史记录');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      currentEditingId = null;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+      document.querySelectorAll('.panel-body').forEach(body => body.classList.toggle('active', body.dataset.body === tab));
+      $('panelTitle').textContent = tabs[tab].label;
+      setTodayDefaults();
+      renderArchive();
+    }
+
+    function renderArchive() {
+      const container = $('archiveList');
+      const keyword = $('searchInput').value.trim().toLowerCase();
+      const list = state.records[activeTab] || [];
+      const filtered = !keyword ? list : list.filter(r => {
+        const blob = (r.title + '\n' + r.snippet + '\n' + JSON.stringify(r.data)).toLowerCase();
+        return blob.includes(keyword);
+      });
+      if (!filtered.length) {
+        container.innerHTML = '<div class="archive-item"><div class="archive-item-snippet">暂无记录。</div></div>';
+        return;
+      }
+      container.innerHTML = filtered.map(r => `
+        <div class="archive-item">
+          <div class="archive-item-top">
+            <div>
+              <div class="archive-item-title">${escapeHtml(r.title || tabs[activeTab].label)}</div>
+              <div class="archive-item-meta">最后更新：${formatDateTime(r.updatedAt)}</div>
+            </div>
+            <div class="inline-actions">
+              <button class="secondary" onclick="loadRecord('${activeTab}','${r.id}')">载入</button>
+              <button onclick="deleteRecord('${activeTab}','${r.id}')">删除</button>
+            </div>
+          </div>
+          <div class="archive-item-snippet">${escapeHtml(r.snippet || '（无摘要）')}</div>
+        </div>
+      `).join('');
+    }
+
+    function exportJson() {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      downloadBlob(blob, `今日一号令-备份-${dateStamp()}.json`);
+    }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          if (!parsed.records) throw new Error('bad');
+          state = parsed;
+          persist();
+          switchTab(activeTab);
+          setStatus('已导入 JSON 备份');
+        } catch (e) {
+          alert('导入失败：文件格式不正确。');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    function exportMarkdown() {
+      const chunks = ['# 今日一号令\n'];
+      Object.keys(tabs).forEach(tab => {
+        chunks.push(`\n## ${tabs[tab].label}\n`);
+        const records = state.records[tab] || [];
+        if (!records.length) {
+          chunks.push('\n暂无记录。\n');
+          return;
+        }
+        records.forEach((r, idx) => {
+          chunks.push(`\n### ${idx + 1}. ${r.title || tabs[tab].label}\n`);
+          chunks.push(`- 最后更新：${formatDateTime(r.updatedAt)}\n`);
+          Object.entries(r.data).forEach(([k,v]) => {
+            if (!v) return;
+            chunks.push(`- ${fieldLabel(k)}：${String(v).replace(/\n/g,'  ')}\n`);
+          });
+        });
+      });
+      const blob = new Blob([chunks.join('')], { type: 'text/markdown;charset=utf-8' });
+      downloadBlob(blob, `今日一号令-${dateStamp()}.md`);
+    }
+
+    function fieldLabel(key) {
+      const el = document.querySelector(`[id="${key}"]`);
+      if (!el) return key;
+      const label = el.closest('.field')?.querySelector('label');
+      return label ? label.textContent : key;
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function formatDateTime(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function dateStamp() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    $('searchInput').addEventListener('input', renderArchive);
+    $('exportJsonBtn').addEventListener('click', exportJson);
+    $('exportMarkdownBtn').addEventListener('click', exportMarkdown);
+    $('importJsonTrigger').addEventListener('click', () => $('importJsonInput').click());
+    $('importJsonInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) importJson(file);
+      e.target.value = '';
+    });
+    $('clearDraftBtn').addEventListener('click', () => clearForm(activeTab));
+
+    Object.values(tabs).forEach(cfg => {
+      cfg.fields.forEach(id => {
+        const el = $(id);
+        if (!el) return;
+        el.addEventListener('input', () => {
+          setStatus('正在编辑…');
+        });
+      });
+    });
+
+    setTodayDefaults();
+    renderArchive();
+  </script>
+</body>
+</html>
